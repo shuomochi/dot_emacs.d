@@ -37,27 +37,39 @@
 ;; (setq initial-scratch-message "")
 
 ;; font
-;;(set-default-font "Ricty Diminished")
-(set-frame-font "Ricty Diminished")
-(add-to-list 'default-frame-alist '(font . "Ricty Diminished-12"))
-(add-to-list 'default-frame-alist '(width . 120))
-(add-to-list 'default-frame-alist '(height . 50))
-(add-to-list 'default-frame-alist '(top . 30))
-(add-to-list 'default-frame-alist '(left . 800))
+(set-default-font "Ricty Diminished")
+(add-to-list 'default-frame-alist
+	     '(font . "Ricty Diminished-14")
+	     )
+;; (set-frame-font "Ricty Diminished")
+;; (add-to-list 'default-frame-alist '(font . "Ricty Diminished-12"))
+;; (add-to-list 'default-frame-alist '(width . 120))
+;; (add-to-list 'default-frame-alist '(height . 50))
+;; (add-to-list 'default-frame-alist '(top . 30))
+;; (add-to-list 'default-frame-alist '(left . 800))
 
-;; 初期表示位置
+;; ウィンドウサイズ設定(まとめてリスト設定ってどうやるんだっけ？)
+(add-to-list 'default-frame-alist
+	     '(width . 100)
+	     )
+(add-to-list 'default-frame-alist
+	     '(height . 50)
+	     )
 
+;;(set-default-font "MyricaM M")
+;;(add-to-list 'default-frame-alist '(font . "MyricaM M-14"))
+  
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; キーバインド
 ;;
 
 ;; 行頭の kill-line (C-k) で行ごと削除
-(setq kill-whole-line t)
+(setq kill-whole-line t) 
  
 ;; CUAモード(C-RET) 有効
-(cua-mode t)
-(setq cua-enable-cua-keys nil)
+(cua-mode t) 
+(setq cua-enable-cua-keys nil) 
 
 ;; M-n M-pで複数行移動
 (global-set-key (kbd "M-n")
@@ -66,10 +78,10 @@
 		(lambda() (interactive) (previous-line 5)))
 
 ;; C-v > Scroll up
-;;(global-set-key (kbd "C-v") 'scroll-up)
+;;(global-set-key (kbd "C-v") 'scroll-up) 
  
 ;; C-h > バックスペース
-;;(global-set-key (kbd "C-h") 'delete-backward-char)
+;;(global-set-key (kbd "C-h") 'delete-backward-char) 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -87,19 +99,19 @@
 ;;(add-hook 'w32-ime-off-hook '(lambda () (set-cursor-color "orchid")))
 
 ;; MAC設定ファイルへ
-;; (when (fboundp 'mac-input-source)
-;;     (defun my-mac-selected-keyboard-input-source-chage-function ()
-;;       "英語のときはカーソルの色を黄色に、日本語のときは赤にします."
-;;       (let ((mac-input-source (mac-input-source)))
-;;         (set-cursor-color
-;;           (if (string-match "com.google.inputmethod.Japanese.Roman" mac-input-source)
-;;               "White" "Yellow"))))
-;;     (add-hook 'mac-selected-keyboard-input-source-change-hook
-;;               'my-mac-selected-keyboard-input-source-chage-function))
+(when (fboundp 'mac-input-source)
+    (defun my-mac-selected-keyboard-input-source-chage-function ()
+      "英語のときはカーソルの色を黄色に、日本語のときは赤にします."
+      (let ((mac-input-source (mac-input-source)))
+        (set-cursor-color
+          (if (string-match "com.google.inputmethod.Japanese.Roman" mac-input-source)
+              "White" "Orange"))))
+    (add-hook 'mac-selected-keyboard-input-source-change-hook
+              'my-mac-selected-keyboard-input-source-chage-function))
 
 ;; ミニバッファにカーソルが移動すると自動的に英語モードにする
-;; (when (functionp 'mac-auto-ascii-mode)
-;;    (mac-auto-ascii-mode 1))
+ (when (functionp 'mac-auto-ascii-mode)
+    (mac-auto-ascii-mode 1))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -114,15 +126,74 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
+;; kotlin-modeの設定
+;;
+(use-package kotlin-mode)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; obj-cの設定
+;;
+
+;; iOS SDKへのPATH
+(defvar xcode:sdk "/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk")
+
+;; TABスペースは利用せず、半角スペースを4つにする(デフォルトのままでは2になってました)
+(add-hook 'objc-mode-hook
+          '(lambda()
+             (setq c-basic-offset 4)
+             (setq tab-width 4)
+             (setq indent-tabs-mode nil)))
+
+;; .hファイルもobjc-modeで開けるようにする
+(add-to-list 'magic-mode-alist
+             `(,(lambda ()
+                  (and (string= (file-name-extension buffer-file-name) "h")
+                       (re-search-forward "@\\<interface\\>"
+                                          magic-mode-regexp-match-limit t)))
+               . objc-mode))
+
+;; FoundationやUIKit等のFrameworkの.hファイルを検索対象に含めるようにする
+(setq xcode:frameworks (concat xcode:sdk "/System/Library/Frameworks"))
+(setq cc-search-directories (list xcode:frameworks))
+(defadvice ff-get-file-name (around ff-get-file-name-framework
+                                    (search-dirs
+                                     fname-stub
+                                     &optional suffix-list))
+  "Search for Mac framework headers as well as POSIX headers."
+  (or
+   (if (string-match "\\(.*?\\)/\\(.*\\)" fname-stub)
+       (let* ((framework (match-string 1 fname-stub))
+              (header (match-string 2 fname-stub))
+              (fname-stub (concat framework ".framework/Headers/" header)))
+         ad-do-it))
+   ad-do-it))
+(ad-enable-advice 'ff-get-file-name 'around 'ff-get-file-name-framework)
+(ad-activate 'ff-get-file-name)
+
+;; 対になってる.hファイルと.mファイルをトグルできるようにする
+;; (require 'find-file) ;; for the "cc-other-file-alist" variable
+;; (nconc (cadr (assoc "\\.h\\'" cc-other-file-alist)) '(".m" ".mm"))
+;; (define-key c-mode-base-map (kbd "C-c '") 'ff-find-other-file)
+
+;; ;; .hと.mを左右に並べて開く
+;; (defun open-header-and-method-file ()
+;;   (interactive)
+;;   (other-window-or-split)
+;;   (ff-find-other-file))
+;; (define-key objc-mode-map (kbd "C-c ;") 'open-header-and-method-file)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
 ;; その他
 ;;
 
 ;; 自動保存されるバックアップファイルの置き場所を ~/.emacs.d/backup に変更する
-(setq backup-directory-alist
-  (cons (cons ".*" (expand-file-name "~/.emacs.d/backup"))
-        backup-directory-alist))
-(setq auto-save-file-name-transforms
-      `((".*", (expand-file-name "~/.emacs.d/backup/") t)))
+(setq backup-directory-alist 
+  (cons (cons ".*" (expand-file-name "~/.emacs.d/backup")) 
+        backup-directory-alist)) 
+(setq auto-save-file-name-transforms 
+      `((".*", (expand-file-name "~/.emacs.d/backup/") t))) 
 
 
 ;; bash on windows
@@ -160,7 +231,7 @@
   (setq ivy-height 10)
 
   (setq ivy-re-builders-alist
-	'((t . ivy--regex-plus)))
+	'((t . ivy--regex-plus)))  
 
   ;; ミニバッファでコマンド発行を認める
   (when (setq enable-recursive-minibuffers t)
@@ -177,7 +248,8 @@
   :config
   (setq migemo-command "cmigemo")
   (setq migemo-options '("-q" "--emacs" "-i" "\a"))
-  (setq migemo-dictionary "c:/apps/cmd/cmigemo-default-win64/dict/utf-8/migemo-dict")
+  ;;  (setq migemo-dictionary "c:/apps/cmd/cmigemo-default-win64/dict/utf-8/migemo-dict")
+  (setq migemo-dictionary "/usr/local/share/migemo/utf-8/migemo-dict")
   (setq migemo-user-dictionary nil)
   (setq migemo-regex-dictionary nil)
   ;; charset encoding
@@ -225,8 +297,7 @@
 ;;(add-hook 'after-init-hook (lambda()
 ;;    (recentf-open-files)
 ;;    ))
-  )
-
+)
 
 ;; (use-package yasnippet
 ;;   :config
@@ -349,8 +420,9 @@
   (add-to-list 'auto-mode-alist '("\\.puml$" . plantuml-mode))
   
   ;; あなたのplantuml.jarファイルの絶対パスをかく
-  ;;(setq plantuml-jar-path "/usr/local/Cellar/plantuml/1.2019.6/libexec/plantuml.jar")
-  (setq plantuml-jar-path "c:/apps/devtools/plantuml/plantuml.1.2019.10.jar")
+  (setq plantuml-jar-path "/usr/local/Cellar/plantuml/1.2020.5/libexec/plantuml.jar")
+  ;;(setq plantuml-jar-path "c:/apps/devtools/plantuml/plantuml.1.2019.10.jar")
+  ;;(setq plantuml-jar-path "c:/apps/devtools/plantuml/plantuml.1.2019.10.jar")
 ;;  (setq plantuml-jar-path "~/plantuml.jar")
   ;; javaにオプションを渡したい場合はここにかく
   (setq plantuml-java-options "")
@@ -364,6 +436,8 @@
   ;;         (define-key map (kbd "C-c C-c") 'plantuml-execute)
   ;;         map))
 
+  (setq tab-width 4)
+
   (bind-keys :map plantuml-mode-map
 	     ;; plantuml-modeの時にC-c C-sでplantuml-save-png関数を実行
 	     ("C-c C-o" . plantuml-save-png)
@@ -372,6 +446,15 @@
   ;; もしも.puファイルを保存した時にpngファイルを保存したい場合はこちらをコメントイン
   ;; (add-hook ‘plantuml-mode-hook
   ;; (lambda () (add-hook ‘after-save-hook ‘plantuml-save-png)))
+
+  ;; (defun plantuml-preview-frame (prefix)
+  ;;   (interactive "p")
+  ;;   (plantuml-preview 16))
+  ;; (add-hook 'plantuml-mode-hook
+  ;; 	    (lambda()
+  ;; 	      (define-key plantuml-mode-map (kbd "C-c C-p") 'plantuml-preview-frame)
+  ;; 	      (setq plantuml-executable-args
+  ;; 		    (append plantuml-executable-args '("-charset" "UTF-8")))))
 
   ;; plantumlをpngで保存する関数
   (defun plantuml-save-png ()
@@ -485,3 +568,4 @@
 
 ;; set the keybind
 (global-set-key (kbd "C-c C-f") 'finder-current-dir-open)
+
