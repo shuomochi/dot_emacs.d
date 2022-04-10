@@ -37,16 +37,20 @@
 ;; (setq initial-scratch-message "")
 
 ;; font
-(set-default-font "Ricty Diminished")
-(add-to-list 'default-frame-alist
-	     '(font . "Ricty Diminished-14")
-	     )
-;; (set-frame-font "Ricty Diminished")
+;;(set-default-font "Ricty Diminished")
+;; (add-to-list 'default-frame-alist
+;; 	     '(font . "Ricty Diminished-14")
+;; 	     )
+;;(set-frame-font "Ricty Diminished")
 ;; (add-to-list 'default-frame-alist '(font . "Ricty Diminished-12"))
 ;; (add-to-list 'default-frame-alist '(width . 120))
 ;; (add-to-list 'default-frame-alist '(height . 50))
 ;; (add-to-list 'default-frame-alist '(top . 30))
 ;; (add-to-list 'default-frame-alist '(left . 800))
+
+(add-to-list 'default-frame-alist
+	     '(font . "Cica-15")
+	     )
 
 ;; ウィンドウサイズ設定(まとめてリスト設定ってどうやるんだっけ？)
 (add-to-list 'default-frame-alist
@@ -112,6 +116,10 @@
 ;; ミニバッファにカーソルが移動すると自動的に英語モードにする
  (when (functionp 'mac-auto-ascii-mode)
     (mac-auto-ascii-mode 1))
+
+;; メタキーをCommandキーに変更
+(when (eq system-type 'darwin)
+  (setq ns-command-modifier (quote meta)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -412,6 +420,7 @@
 (use-package js2-mode
   :config
   (add-to-list 'auto-mode-alist '("\\.js\\'" . js2-mode))
+  )
 
 (use-package plantuml-mode
   :config
